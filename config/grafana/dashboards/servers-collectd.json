@@ -2691,7 +2691,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -2725,8 +2726,8 @@
           "hide": false,
           "refCount": 0,
           "refId": "C",
-          "target": "aliasByNode(summarize(scale(lando.$server.interface-*.if_octets.rx, 8), '$timeperiod', 'max', false), 1, 2)",
-          "textEditor": false
+          "target": "aliasSub(aliasByNode(summarize(scale(lando.$server.interface-*.if_octets.rx, 8), '$timeperiod', 'max', false), 1, 2), '(.+)\\.interface-(.+)', '\\1 \\2 rx')",
+          "textEditor": true
         },
         {
           "datasource": {
@@ -2735,8 +2736,8 @@
           "hide": false,
           "refCount": 0,
           "refId": "B",
-          "target": "aliasByNode(summarize(scale(lando.$server.interface-*.if_octets.tx, 8), '$timeperiod', 'max', false), 1, 2)",
-          "textEditor": false
+          "target": "aliasSub(aliasByNode(summarize(scale(lando.$server.interface-*.if_octets.tx, 8), '$timeperiod', 'max', false), 1, 2), '(.+)\\.interface-(.+)', '\\1 \\2 tx')",
+          "textEditor": true
         }
       ],
       "title": "Network Traffic/sec",
@@ -2798,7 +2799,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "pps"
         },
         "overrides": []
       },
@@ -2832,8 +2834,8 @@
           "hide": false,
           "refCount": 0,
           "refId": "A",
-          "target": "aliasByNode(summarize(lando.$server.interface-*.if_packets.rx, '$timeperiod', 'max', false), 1, 2)",
-          "textEditor": false
+          "target": "aliasSub(aliasByNode(summarize(lando.$server.interface-*.if_packets.rx, '$timeperiod', 'max', false), 1, 2), '(.+)\\.interface-(.+)', '\\1 \\2 rx')",
+          "textEditor": true
         },
         {
           "datasource": {
@@ -2842,8 +2844,8 @@
           "hide": false,
           "refCount": 0,
           "refId": "B",
-          "target": "aliasByNode(summarize(lando.$server.interface-*.if_packets.tx, '$timeperiod', 'max', false), 1, 2)",
-          "textEditor": false
+          "target": "aliasSub(aliasByNode(summarize(lando.$server.interface-*.if_packets.tx, '$timeperiod', 'max', false), 1, 2), '(.+)\\.interface-(.+)', '\\1 \\2 tx')",
+          "textEditor": true
         }
       ],
       "title": "Network Packets/sec",
@@ -2938,8 +2940,8 @@
           },
           "refCount": 0,
           "refId": "A",
-          "target": "aliasByNode(summarize(lando.$server.interface-*.if_errors.rx, '$timeperiod', 'max', false), 1, 2)",
-          "textEditor": false
+          "target": "aliasSub(aliasByNode(summarize(lando.$server.interface-*.if_errors.rx, '$timeperiod', 'max', false), 1, 2), '(.+)\\.interface-(.+)', '\\1 \\2 rx')",
+          "textEditor": true
         },
         {
           "datasource": {
@@ -2947,8 +2949,8 @@
           },
           "refCount": 0,
           "refId": "B",
-          "target": "aliasByNode(summarize(lando.$server.interface-*.if_errors.tx, '$timeperiod', 'max', false), 1, 2)",
-          "textEditor": false
+          "target": "aliasSub(aliasByNode(summarize(lando.$server.interface-*.if_errors.tx, '$timeperiod', 'max', false), 1, 2), '(.+)\\.interface-(.+)', '\\1 \\2 tx')",
+          "textEditor": true
         }
       ],
       "title": "Network Errors/sec",
