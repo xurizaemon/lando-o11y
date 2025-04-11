@@ -147,9 +147,9 @@ services:
       user: root
       ports:
         - "3200"  # tempo
-        - "9095"  # tempo grpc
         - "4317"  # otlp grpc
         - "4318"  # otlp http
+        - "9095"  # tempo grpc
     scanner:
       disabled: true
     overrides:

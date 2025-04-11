@@ -3289,8 +3289,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Servers - Collectd",
-  "uid": "servers-collectd",
+  "title": "Server metrics",
+  "uid": "server-metrics-collectd",
   "version": 1,
   "weekStart": ""
 }
