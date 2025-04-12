@@ -115,21 +115,21 @@ services:
         - '/usr/bin/loki'
         - '-config.file=/etc/loki/local-config.yaml'
 
-  mimir:
-    api: 3
-    type: lando
-    ports:
-      - '9009'
-    portforward: true
-    services:
-      image: grafana/mimir:latest
-      command: '/busybox/busybox sh'
-      volumes:
-        - ./config/mimir/mimir.yaml:/etc/mimir.yaml
-    overrides:
-      entrypoint:
-        - /bin/mimir
-        - config.file=/etc/mimir.yaml
+#  mimir:
+#    api: 3
+#    type: lando
+#    ports:
+#      - '9009'
+#    portforward: true
+#    services:
+#      image: grafana/mimir:latest
+#      command: '/busybox/busybox sh'
+#      volumes:
+#        - ./config/mimir/mimir.yaml:/etc/mimir.yaml
+#    overrides:
+#      entrypoint:
+#        - /bin/mimir
+#        - config.file=/etc/mimir.yaml
 
   # Generate test OTel data.
   # Usage:
@@ -144,27 +144,27 @@ services:
   # Ports 3200, 4317, 4318, 9095
   # https://github.com/grafana/tempo/blob/main/example/docker-compose/local/docker-compose.yaml
   # Grafana source: http://tempo.o11y.internal:3200
-  tempo:
-    type: lando
-    api: 3
-    services:
-      image: grafana/tempo:latest
-      command: '/busybox/busybox sh'
-      user: root
-      ports:
-        - "3200"  # tempo
-        - "4317"  # otlp grpc
-        - "4318"  # otlp http
-        - "9095"  # tempo grpc
-    scanner:
-      disabled: true
-    overrides:
-      entrypoint:
-        - '/tempo'
-        - '-config.file=/etc/tempo.yaml'
-      volumes:
-        - ./config/tempo/tempo.yaml:/etc/tempo.yaml
-        - tempo_data:/data
+#  tempo:
+#    type: lando
+#    api: 3
+#    services:
+#      image: grafana/tempo:latest
+#      command: '/busybox/busybox sh'
+#      user: root
+#      ports:
+#        - "3200"  # tempo
+#        - "4317"  # otlp grpc
+#        - "4318"  # otlp http
+#        - "9095"  # tempo grpc
+#    scanner:
+#      disabled: true
+#    overrides:
+#      entrypoint:
+#        - '/tempo'
+#        - '-config.file=/etc/tempo.yaml'
+#      volumes:
+#        - ./config/tempo/tempo.yaml:/etc/tempo.yaml
+#        - tempo_data:/data
 
 volumes:
   apache_logs_data: {}
