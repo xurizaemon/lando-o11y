@@ -54,17 +54,6 @@ services:
         # Make appserver logs available to Alloy.
         - apache_logs_data:/var/log/apache2
 
-  database:
-    build_as_root:
-      - apt update
-      - apt -y --no-install-recommends install collectd libmariadb-dev libmnl0
-    run_as_root:
-      - collectd
-    overrides:
-      volumes:
-        - ./config/example/collectd/collectd.conf.d/common.conf:/etc/collectd/collectd.conf.d/10-common.conf
-        - ./config/example/collectd/collectd.conf.d/database.conf:/etc/collectd/collectd.conf.d/20-database.conf
-
   grafana:
     type: lando
     api: 3
