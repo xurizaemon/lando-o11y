@@ -33,17 +33,8 @@ services:
         - ./config/example/collectd/collectd.conf.d/common.conf:/etc/collectd/collectd.conf.d/10-common.conf
         - ./config/example/collectd/collectd.conf.d/appserver.conf:/etc/collectd/collectd.conf.d/20-appserver.conf
         - apache_logs_data:/var/log/apache2
-
-  database:
-    build_as_root:
-      - apt update
-      - apt -y --no-install-recommends install collectd libmariadb-dev libmnl0
-    run_as_root:
-      - collectd
-    overrides:
-      volumes:
-        - ./config/example/collectd/collectd.conf.d/common.conf:/etc/collectd/collectd.conf.d/10-common.conf
-        - ./config/example/collectd/collectd.conf.d/database.conf:/etc/collectd/collectd.conf.d/20-database.conf
+    depends_on:
+      - database
 
   alloy:
     type: lando
@@ -63,6 +54,17 @@ services:
         # Make appserver logs available to Alloy.
         - apache_logs_data:/var/log/apache2
 
+  database:
+    build_as_root:
+      - apt update
+      - apt -y --no-install-recommends install collectd libmariadb-dev libmnl0
+    run_as_root:
+      - collectd
+    overrides:
+      volumes:
+        - ./config/example/collectd/collectd.conf.d/common.conf:/etc/collectd/collectd.conf.d/10-common.conf
+        - ./config/example/collectd/collectd.conf.d/database.conf:/etc/collectd/collectd.conf.d/20-database.conf
+
   grafana:
     type: lando
     api: 3
@@ -76,6 +78,8 @@ services:
         - ./config/grafana/dashboards:/etc/grafana/dashboards
         # - grafana_data:/opt/graphite/storage
     portforward: true
+    depends_on:
+      - graphite
 
   graphite:
     type: lando
@@ -163,9 +167,9 @@ services:
         - tempo_data:/data
 
 volumes:
+  apache_logs_data: {}
   grafana_data: {}
   graphite_data: {}
   loki_data: {}
   mimir_data: {}
   tempo_data: {}
-  apache_logs_data: {}
