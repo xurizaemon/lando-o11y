@@ -55,7 +55,7 @@ prometheus.remote_write "default" {
 local.file_match "logs" {
   path_targets = [
     {__path__ = "/logs/appserver_apache2/*.log", "service_name" = "apache", service_namespace = "o11y"},
-    {__path__ = "/logs/database_mysql/*.log", "service_name" = "apache"},
+    {__path__ = "/logs/database_mysql/*.log", "service_name" = "mysql"},
     {__path__ = "/var/log/syslog", "service_name" = "syslog", service_namespace = "o11y"},
   ]
 }
