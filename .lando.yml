@@ -25,6 +25,9 @@ services:
     build_as_root:
       - apt update
       - apt -y --no-install-recommends install collectd libmnl0
+      - touch tmp/log_database_mysql/mysqld.log
+      - chmod -R ugo+rw tmp/log_database_mysql
+      - 'chown 1001:1001 tmp/log_database_mysql'
     run_as_root:
       - collectd
     overrides:
