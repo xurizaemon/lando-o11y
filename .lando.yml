@@ -20,11 +20,11 @@ variables:
 
 services:
   appserver:
+    config:
+      vhosts: config/example/apache2/default.conf
     build_as_root:
       - apt update
       - apt -y --no-install-recommends install collectd libmnl0
-    config:
-      vhosts: config/example/apache2/default.conf
     run_as_root:
       - collectd
     overrides:
@@ -32,9 +32,7 @@ services:
         - ./config/example/apache2/status.conf:/etc/apache2/conf-enabled/status.conf
         - ./config/example/collectd/collectd.conf.d/common.conf:/etc/collectd/collectd.conf.d/10-common.conf
         - ./config/example/collectd/collectd.conf.d/appserver.conf:/etc/collectd/collectd.conf.d/20-appserver.conf
-        - apache_logs_data:/var/log/apache2
-    depends_on:
-      - database
+        - tmp/log_appserver_apache2:/var/log/apache2
 
   alloy:
     type: lando
@@ -52,7 +50,20 @@ services:
       volumes:
         - ./config/alloy/config.alloy:/etc/alloy/config.alloy
         # Make appserver logs available to Alloy.
-        - apache_logs_data:/var/log/apache2
+        - tmp/log_appserver_apache2:/logs/appserver_apache2
+        - tmp/log_database_mysql:/logs/database_mysql
+
+  database:
+    build_as_root:
+      - apt update
+      - apt -y --no-install-recommends install collectd libmnl0
+    run_as_root:
+      - echo '🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴'
+      - ls -lAF /opt/bitnami/mysql /opt/bitnami/mysql/logs
+    overrides:
+      volumes:
+        # Logs land in a volume Alloy can read.
+        - tmp/log_database_mysql:/opt/bitnami/mysql/logs
 
   grafana:
     type: lando
@@ -65,7 +76,7 @@ services:
       volumes:
         - ./config/grafana/provisioning:/etc/grafana/provisioning
         - ./config/grafana/dashboards:/etc/grafana/dashboards
-        # - grafana_data:/opt/graphite/storage
+        # - tmp/data_grafana:/opt/graphite/storage
     portforward: true
     depends_on:
       - graphite
@@ -81,7 +92,7 @@ services:
         - '80'
         - '2003'
       volumes:
-        - graphite_data:/opt/graphite/storage
+        - tmp/data_graphite:/opt/graphite/storage
     portforward: true
 
   loki:
@@ -96,9 +107,9 @@ services:
         - '9096'
       volumes:
         - ./config/loki/loki.yaml:/etc/loki/local-config.yaml
-        - data_loki:/data
+        - tmp/data_loki:/data
         # Make appserver logs available to Loki.
-        - apache_logs_data:/var/log/apache2
+        - tmp/log_appserver_apache2:/var/log/apache2
     overrides:
       entrypoint:
         - '/usr/bin/loki'
@@ -154,11 +165,3 @@ services:
 #      volumes:
 #        - ./config/tempo/tempo.yaml:/etc/tempo.yaml
 #        - tempo_data:/data
-
-volumes:
-  apache_logs_data: {}
-  grafana_data: {}
-  graphite_data: {}
-  loki_data: {}
-  mimir_data: {}
-  tempo_data: {}
