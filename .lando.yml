@@ -54,12 +54,17 @@ services:
         - tmp/log_database_mysql:/logs/database_mysql
 
   database:
-    build_as_root:
-      - apt update
-      - apt -y --no-install-recommends install collectd libmnl0
-    run_as_root:
-      - echo '🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴'
-      - ls -lAF /opt/bitnami/mysql /opt/bitnami/mysql/logs
+#    build_as_root:
+#      - apt update
+#      - apt -y --no-install-recommends install collectd libmnl0
+#      - chown -R 1001:1001 /opt/bitnami/mysql/logs
+#      - echo '🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴'
+#      - ls -lAF /opt/bitnami/mysql /opt/bitnami/mysql/logs
+#    run_as_root:
+#      - echo '🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴'
+#      - ls -lAF /opt/bitnami/mysql /opt/bitnami/mysql/logs
+    config:
+      database: config/example/mysql/custom.cnf
     overrides:
       volumes:
         # Logs land in a volume Alloy can read.
