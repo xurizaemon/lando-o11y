@@ -87,7 +87,10 @@ services:
         # - tmp/data_grafana:/opt/graphite/storage
     portforward: true
     depends_on:
+      - appserver
+      - database
       - graphite
+      - loki
 
   graphite:
     type: lando
@@ -142,12 +145,12 @@ services:
   # Generate test OTel data.
   # Usage:
   # - telemetrygen traces --otlp-endpoint alloy.o11y.internal:4317 --otlp-insecure --duration 5s
-  telemetrygen:
-    type: go
-    overrides:
-      image: golang:latest
-    build:
-      - go install github.com/open-telemetry/opentelemetry-collector-contrib/cmd/telemetrygen@latest
+#  telemetrygen:
+#    type: go
+#    overrides:
+#      image: golang:latest
+#    build:
+#      - go install github.com/open-telemetry/opentelemetry-collector-contrib/cmd/telemetrygen@latest
 
   # Ports 3200, 4317, 4318, 9095
   # https://github.com/grafana/tempo/blob/main/example/docker-compose/local/docker-compose.yaml
