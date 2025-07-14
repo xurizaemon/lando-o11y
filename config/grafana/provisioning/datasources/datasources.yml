@@ -1,0 +1,85 @@
+apiVersion: 1
+
+datasources:
+  - name: Graphite
+    uid: graphite
+    type: graphite
+    access: proxy
+    orgId: 1
+    url: http://graphite.o11y.lndo.site
+    # basicAuth: false
+    isDefault: false
+    version: 9
+    editable: false
+    apiVersion: 1
+    jsonData:
+      graphiteType: default
+      graphiteVersion: "1.1"
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://loki.o11y.internal:3100
+    basicAuth: false
+    isDefault: true
+    version: 1
+    editable: false
+    apiVersion: 1
+    jsonData:
+      derivedFields:
+        - datasourceUid: Tempo
+          matcherRegex: "trace_id=\"(\\w+)\""
+          name: trace_id
+          url: "$${__value.raw}"
+
+  - name: Mimir
+    uid: mimir
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://mimir.o11y.internal:8080
+    # basicAuth: false
+    isDefault: false
+    version: 9
+    editable: false
+    apiVersion: 1
+    jsonData:
+      # httpMethod: "POST"
+      prometheusType: "Mimir"
+      # prometheusVersion: "2.9.1"
+      # tlsSkipVerify: true
+      # timeout: 30
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://tempo.o11y.internal:3200
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: false
+    apiVersion: 1
+    jsonData:
+      tracesToLogsV2:
+        # Field with an internal link pointing to a logs data source in Grafana.
+        # datasourceUid value must match the uid value of the logs data source.
+        datasourceUid: "loki"
+        spanStartTimeShift: "1h"
+        spanEndTimeShift: "-1h"
+        filterByTraceID: false
+        filterBySpanID: false
+        customQuery: true
+        query: '{job="syslog"} | logfmt | trace_id="$${__span.traceId}"'
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: "loki"
+      spanBar:
+        type: "Tag"
+        tag: "http.path"

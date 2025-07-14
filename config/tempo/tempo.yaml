@@ -1,0 +1,41 @@
+server:
+  http_listen_address: 0.0.0.0
+  http_listen_port: 3200
+  # log_level: debug
+
+distributor:
+  # this configuration will listen on all ports and protocols that tempo is capable of.
+  # the receives all come from the OpenTelemetry collector.  more configuration information can
+  # be found there: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver
+  #
+  # for a production deployment you should only enable the receivers you need!
+  receivers:
+#    jaeger:
+#      protocols:
+#        thrift_http:
+#        grpc:
+#        thrift_binary:
+#        thrift_compact:
+#    zipkin:
+    otlp:
+      protocols:
+        # OTLP HTTP on port 4318
+        http:
+          endpoint: 0.0.0.0:4318
+          cors:
+            allowed_origins:
+              - "*"
+        # OTLP GRPC on port 4317
+        grpc:
+          endpoint: 0.0.0.0:4317
+#    opencensus:
+
+storage:
+  trace:
+    # backend configuration to use
+    backend: local
+    wal:
+      # where to store the wal locally
+      path: /data/wal
+    local:
+      path: /data/blocks

@@ -1,33 +1,77 @@
-name: test
+name: o11y
 recipe: lamp
 config:
   webroot: web
 
 proxy:
+  alloy:
+    - alloy.o11y.lndo.site:12345
   grafana:
-    - grafana.test.lndo.site:3000
+    - grafana.o11y.lndo.site:3000
   graphite:
-    - graphite.test.lndo.site:80
+    - graphite.o11y.lndo.site:80
+  loki:
+    - loki.o11y.lndo.site:3100
+  mimir:
+    - mimir.o11y.lndo.site:8080
 
+variables:
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo.o11y.internal:4318
 
 services:
   appserver:
+    config:
+      vhosts: config/example/apache2/default.conf
     build_as_root:
       - apt update
       - apt -y --no-install-recommends install collectd libmnl0
-    config:
-      vhosts: config/apache2/default.conf
+      - touch tmp/log_database_mysql/mysqld.log tmp/log_database_mysql/mysql_error.log tmp/log_database_mysql/slow_query.log
+      - chmod -R ugo+rw tmp/log_database_mysql
+      - 'chown 1001:1001 tmp/log_database_mysql'
     run_as_root:
       - collectd
     overrides:
       volumes:
-        - ./config/collectd/apache.conf:/etc/collectd/collectd.conf.d/apache.conf
-        - ./config/collectd/client.conf:/etc/collectd/collectd.conf.d/client.conf
-        - ./config/collectd/debug.conf:/etc/collectd/collectd.conf.d/debug.conf
-        - ./config/collectd/mysql.conf:/etc/collectd/collectd.conf.d/mysql.conf
-        - ./config/collectd/os.conf:/etc/collectd/collectd.conf.d/os.conf
-        - ./config/apache2/logformat.conf:/etc/apache2/conf-enabled/logformat.conf
-        - ./config/apache2/status.conf:/etc/apache2/conf-enabled/status.conf
+        - ./config/example/apache2/status.conf:/etc/apache2/conf-enabled/status.conf
+        - ./config/example/collectd/collectd.conf.d/common.conf:/etc/collectd/collectd.conf.d/10-common.conf
+        - ./config/example/collectd/collectd.conf.d/appserver.conf:/etc/collectd/collectd.conf.d/20-appserver.conf
+        - tmp/log_appserver_apache2:/var/log/apache2
+
+  alloy:
+    type: lando
+    api: 3
+    services:
+      image: grafana/alloy:latest
+      command: /bin/alloy run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data --stability.level=experimental /etc/alloy
+      ports:
+        - '12345'
+        - '4317'
+        - '4318'
+        - '9411'
+        - '14268'
+    overrides:
+      volumes:
+        - ./config/alloy/config.alloy:/etc/alloy/config.alloy
+        # Make appserver logs available to Alloy.
+        - tmp/log_appserver_apache2:/logs/appserver_apache2
+        - tmp/log_database_mysql:/logs/database_mysql
+
+  database:
+#    build_as_root:
+#      - apt update
+#      - apt -y --no-install-recommends install collectd libmnl0
+#      - chown -R 1001:1001 /opt/bitnami/mysql/logs
+#      - echo '🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴'
+#      - ls -lAF /opt/bitnami/mysql /opt/bitnami/mysql/logs
+#    run_as_root:
+#      - echo '🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴     🔴 🔴 🔴'
+#      - ls -lAF /opt/bitnami/mysql /opt/bitnami/mysql/logs
+    config:
+      database: config/example/mysql/custom.cnf
+    overrides:
+      volumes:
+        # Logs land in a volume Alloy can read.
+        - tmp/log_database_mysql:/opt/bitnami/mysql/logs
 
   grafana:
     type: lando
@@ -37,10 +81,16 @@ services:
       command: /run.sh
       ports:
         - '3000'
+      volumes:
+        - ./config/grafana/provisioning:/etc/grafana/provisioning
+        - ./config/grafana/dashboards:/etc/grafana/dashboards
+        # - tmp/data_grafana:/opt/graphite/storage
     portforward: true
-    # @TODO: Persist Grafana data.
-    # volumes:
-    #   - grafana_data:/var/lib/grafana
+    depends_on:
+      - appserver
+      - database
+      - graphite
+      - loki
 
   graphite:
     type: lando
@@ -52,11 +102,77 @@ services:
       ports:
         - '80'
         - '2003'
+      volumes:
+        - tmp/data_graphite:/opt/graphite/storage
     portforward: true
-    # @TODO: Persist Graphite data.
-    # volumes:
-    #   - graphite_data:/opt/graphite/storage
 
-volumes:
-  grafana_data: {}
-  graphite_data: {}
+  loki:
+    type: lando
+    api: 3
+    portforward: true
+    services:
+      user: root
+      image: grafana/loki:latest
+      ports:
+        - '3100'
+        - '9096'
+      volumes:
+        - ./config/loki/loki.yaml:/etc/loki/local-config.yaml
+        - tmp/data_loki:/data
+        # Make appserver logs available to Loki.
+        - tmp/log_appserver_apache2:/var/log/apache2
+    overrides:
+      entrypoint:
+        - '/usr/bin/loki'
+        - '-config.file=/etc/loki/local-config.yaml'
+
+#  mimir:
+#    api: 3
+#    type: lando
+#    ports:
+#      - '9009'
+#    portforward: true
+#    services:
+#      image: grafana/mimir:latest
+#      command: '/busybox/busybox sh'
+#      volumes:
+#        - ./config/mimir/mimir.yaml:/etc/mimir.yaml
+#    overrides:
+#      entrypoint:
+#        - /bin/mimir
+#        - config.file=/etc/mimir.yaml
+
+  # Generate test OTel data.
+  # Usage:
+  # - telemetrygen traces --otlp-endpoint alloy.o11y.internal:4317 --otlp-insecure --duration 5s
+#  telemetrygen:
+#    type: go
+#    overrides:
+#      image: golang:latest
+#    build:
+#      - go install github.com/open-telemetry/opentelemetry-collector-contrib/cmd/telemetrygen@latest
+
+  # Ports 3200, 4317, 4318, 9095
+  # https://github.com/grafana/tempo/blob/main/example/docker-compose/local/docker-compose.yaml
+  # Grafana source: http://tempo.o11y.internal:3200
+#  tempo:
+#    type: lando
+#    api: 3
+#    services:
+#      image: grafana/tempo:latest
+#      command: '/busybox/busybox sh'
+#      user: root
+#      ports:
+#        - "3200"  # tempo
+#        - "4317"  # otlp grpc
+#        - "4318"  # otlp http
+#        - "9095"  # tempo grpc
+#    scanner:
+#      disabled: true
+#    overrides:
+#      entrypoint:
+#        - '/tempo'
+#        - '-config.file=/etc/tempo.yaml'
+#      volumes:
+#        - ./config/tempo/tempo.yaml:/etc/tempo.yaml
+#        - tempo_data:/data

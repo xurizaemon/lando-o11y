@@ -1,106 +1,115 @@
 # Grafana and Graphite in Lando
 
-This environment demonstrates a LAMP stack with additional Grafana and Graphite services.
+This environment demonstrates a LAMP stack with additional observability services.
 
-The LAMP appserver has Collectd installed and configured to capture some metrics from the appserver environment, Apache and MySQL.
+This stack runs _alongside_ your existing development environments and is used to observe those environments.
 
-This environment is for demonstration purposes only; the intended use is to refer to this when configuring a Lando project to add Grafana support.
+It provides:
+
+- [x] [Alloy](http://alloy.o11y.lndo.site/) ([Docs](https://grafana.com/docs/alloy/latest/))
+- [x] [Grafana](http://grafana.o11y.lndo.site/) ([Docs](https://grafana.com/docs/))
+- [x] [Graphite](http://graphite.o11y.lndo.site/) ([Docs](https://graphite.dev/docs/get-started))
+- [ ] [Loki](http://loki.o11y.lndo.site/) ([Docs](https://grafana.com/docs/loki/latest/?pg=oss-loki&plcmt=quick-links))
+- [x] [Mimir](http://mimir.o11y.lndo.site/) ([Docs](https://github.com/grafana/mimir))
+- [x] Tempo ([Docs](https://grafana.com/docs/tempo/latest/))
+
+It also contains an example environment which generates observability data and metrics.
+
+## Usage
+
+- Bring this environment up.
+- Configure observability reporting on other local Lando projects
+- Observe & interact
 
 ## Requirements
 
-- A functioning Lando environment
+- Lando, Docker
 
 ## Setup
 
 1. Clone this repository
 2. `lando start`
-3. Configure Grafana
-4. Test it out
+3. Check it out
 
-### Configure Grafana
+### Setup
 
 - Visit http://grafana.test.lndo.site/
 - Log in with `admin`/`admin`
-- Press "skip" to avoid changing password
-- Connections > Data source > Add new data source
-- Choose type "Graphite"
-  - Name is "Lando Graphite"
-  - Source URL is `http://graphite.test.lndo.site:80`
-- Explore data > Select "graphite" source
-- Try a query of `*.*.*` - you should get some stats
+- (Press "skip", don't change password)
+- Check out some dashboards:
+  - [Servers - CollectD](http://grafana.o11y.lndo.site/d/servers-collectd/servers-collectd)
 
-### This configuration
+### Provisioning
 
-This setup includes examples for:
+- Data sources are provisioned for Graphite, Loki, Mimir, and Tempo 
+- Some dashboards are provisioned
 
-- `config/collectd/apache.conf` - Collectd will _read_ data from Apache's `server-status` endpoint (this depends on Apache configuration addition in `config/apache2/status.conf`).
-- `config/collectd/graphite.conf` - Collectd will _write_ data to Graphite.
-- `config/collectd/debug.conf` - Collectd will _write_ debug info (useful for configuring Collectd).
-- `config/collectd/mysql.conf` - Collectd will _read_ MySQL performance and stats from the `database` service.
-- `config/collectd/nginx.conf` - TBC
-- `config/collectd/os.conf` - Collectd will _read_ OS metrics.
+### Service configurations
+
+#### Alloy
+
+Alloy is a flexible, high performance, vendor-neutral distribution of the [OpenTelemetry](https://opentelemetry.io/ecosystem/distributions/) Collector.
+
+Relationships between Alloy and other OTel components are graphed at http://alloy.o11y.lndo.site/graph
+
+#### Loki
+
+Loki is a set of open source components that can be composed into a fully featured logging stack.
+
+A data source is provisioned to Grafana to access Loki data.
+
+#### Mimir
+
+Mimir provides horizontally scalable, highly available, multi-tenant, long-term storage for Prometheus and OpenTelemetry metrics.
+
+Alloy config writes Prometheus data to this. Listens on port 8080 and 9095 internally.
+
+> mimir_1  | ts=2025-02-08T18:20:39.456151809Z caller=server.go:351 level=info msg="server listening on addresses" http=[::]:8080 grpc=[::]:9095
+
+#### Tempo
+
+Tempo is an open-source, easy-to-use, and high-scale distributed tracing backend. Tempo lets you search for traces, generate metrics from spans, and link your tracing data with logs and metrics.
+
+- A data source is provisioned to Grafana to access Tempo data.
+- Trace data is visible. Generate trace data from your app, or using Telemetrygen.
+
+NB: To get a shell in the container, `lando ssh -s tempo -u root -c '/busybox/busybox sh'`
+
+### Gathering data
+
+Examples are in this repository which you should mirror in your project environment.
+
+#### CollectD (service metrics)
+
+Configure Collectd in a Lando environment to gather metrics. See `appserver` example in this project for build steps and packages.
+
+`config/collectd/{appserver,common,database}`:
+- `apache.conf` - Collectd will _read_ data from Apache's `server-status` endpoint (this depends on Apache configuration addition in `config/apache2/status.conf`).
+- `graphite.conf` - Collectd will _write_ data to Graphite.
+- `debug.conf` - Collectd will _write_ debug info (useful for configuring Collectd).
+- `mysql.conf` - Collectd will _read_ MySQL performance and stats from the `database` service.
+- `nginx.conf` - TBC
+- `os.conf` - Collectd will _read_ OS metrics.
+
+### Generating OpenTelemetry data
+
+To test OpenTelemetry data collection, we can use [telemetrygen](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/cmd/telemetrygen/v0.88.1/cmd/telemetrygen).
+
+```
+lando ssh -s telemetrygen
+telemetrygen logs --otlp-endpoint alloy.o11y.internal:4317 --otlp-insecure --duration 5s
+telemetrygen metrics --otlp-endpoint alloy.o11y.internal:4317 --otlp-insecure --duration 5s
+telemetrygen traces --otlp-endpoint alloy.o11y.internal:4317 --otlp-insecure --duration 5s
+```
 
 ### Test it out
 
-Most likely this is useful if you copy the configuration here into an existing application to test.
+Most likely this is useful if you set up OTel reporting in an adjacent environment and use this project to observe that project.
 
-If you're testing with this repo "as-is", you might like to modify `index.php` so that it generates errors occasionally, or test the `database.php` script. You can send lots of requests to the server by using a tool such as `ab` (from the `apache2-utils` package):
+This project contains an appserver service which is configured to gather metrics and observability data also. 
+
+An example `index.php` and `database.php` are provided to generate some activity which can be observed.
 
 ```bash
-$ ab -n 1000 -c 25 https://test.lndo.site/database.php
-This is ApacheBench, Version 2.3 <$Revision: 1879490 $>
-Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
-Licensed to The Apache Software Foundation, http://www.apache.org/
-
-Benchmarking test.lndo.site (be patient)
-Completed 100 requests
-Completed 200 requests
-Completed 300 requests
-Completed 400 requests
-Completed 500 requests
-Completed 600 requests
-Completed 700 requests
-Completed 800 requests
-Completed 900 requests
-Completed 1000 requests
-Finished 1000 requests
-
-Server Software:        Apache/2.4.54
-Server Hostname:        test.lndo.site
-Server Port:            443
-SSL/TLS Protocol:       TLSv1.2,ECDHE-RSA-AES256-GCM-SHA384,2048,256
-Server Temp Key:        X25519 253 bits
-TLS Server Name:        test.lndo.site
-
-Document Path:          /database.php
-Document Length:        83 bytes
-
-Concurrency Level:      25
-Time taken for tests:   21.760 seconds
-Complete requests:      1000
-Failed requests:        0
-Total transferred:      280000 bytes
-HTML transferred:       83000 bytes
-Requests per second:    45.96 [#/sec] (mean)
-Time per request:       544.000 [ms] (mean)
-Time per request:       21.760 [ms] (mean, across all concurrent requests)
-Transfer rate:          12.57 [Kbytes/sec] received
-
-Connection Times (ms)
-              min  mean[+/-sd] median   max
-Connect:        3    7   4.1      5      30
-Processing:    89  529 502.0    358    4050
-Waiting:       87  529 502.0    358    4049
-Total:         92  536 503.3    363    4076
-
-Percentage of the requests served within a certain time (ms)
-  50%    363
-  66%    511
-  75%    664
-  80%    754
-  90%   1056
-  95%   1391
-  98%   1987
-  99%   2754
- 100%   4076 (longest request)
+$ ab -n 1000 -c 25 https://o11y.lndo.site/database.php
 ```
