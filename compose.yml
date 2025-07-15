@@ -1,0 +1,87 @@
+services:
+  alloy:
+    image: grafana/alloy:latest
+    restart: always
+    ports:
+      - 4317:4317
+      - 4318:4318
+      - 9411:9411
+      - 12345:12345
+      - 14268:14268
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data --stability.level=experimental /etc/alloy
+    networks:
+      - o11y-net
+    volumes:
+      - ./config/alloy/config.alloy:/etc/alloy/config.alloy
+
+  composer:
+    image: composer:latest
+    stdin_open: true
+    tty: true
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - o11y-net
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - o11y-net
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/etc/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+
+  graphite:
+    image: graphiteapp/graphite-statsd:latest
+    restart: always
+    ports:
+      - 2003:2003
+      - 8080:8080
+      - 8125:8125
+    networks:
+      - o11y-net
+    volumes:
+      - graphite_data:/opt/graphite/storage
+
+  loki:
+    image: grafana/loki:latest
+    restart: always
+    ports:
+      - 3100:3100
+      - 9096:9096
+    networks:
+      - o11y-net
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./config/loki/loki.yaml:/etc/loki/local-config.yaml
+
+  mimir:
+    image: grafana/mimir:latest
+    ports:
+      - 9095:9095
+    networks:
+      - o11y-net
+    volumes:
+      - ./config/mimir/mimir.yaml:/etc/mimir.yaml
+    command: config.file=/etc/mimir.yaml
+
+  tempo:
+    image: grafana/tempo:latest
+    ports:
+      - 3200:3200
+    networks:
+      - o11y-net
+    volumes:
+      - ./config/tempo/tempo.yaml:/etc/tempo.yaml
+    command: /tempo -config.file=/etc/tempo.yaml
+
+networks:
+  o11y-net:
+
+volumes:
+  grafana_data: {}
+  graphite_data: {}
+  # loki_data: {}
