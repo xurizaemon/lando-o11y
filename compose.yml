@@ -1,3 +1,5 @@
+name: docker-o11y
+
 services:
   alloy:
     image: grafana/alloy:latest
